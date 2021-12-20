@@ -4,6 +4,8 @@ import datetime
 import mysql.connector as database
 import numpy as np
 import sys, os
+import pyodbc
+
 from dotenv import load_dotenv
 
 # app
@@ -20,11 +22,20 @@ connection = database.connect(
     database=os.getenv('MYSQL_DATABASE'))
 
 cursor = connection.cursor(buffered=True)
+
+mydb_SQLServer = pyodbc.connect('Driver={SQL Server};'
+                      'Server=DESKTOP-02PJJPV\SQLEXPRESS;'
+                      'Database=SS2_DB_P1;'
+                      'Trusted_Connection=yes;')
+mydb_SQLServer.autocommit = True
+cursorSQLServer = mydb_SQLServer.cursor()
+
 initialRoute = 'covid.csv'
 
 # ETL tools
 extracted = None
 transformed = None
+transformedToEconomy = None
 
 def main():
     showMenu()
@@ -123,6 +134,7 @@ def transformInfo():
     try:
         global extracted
         global transformed
+        global transformedToEconomy
         transformed = []
         index = 0
         for row in extracted:
@@ -175,8 +187,27 @@ def transformInfo():
                 fieldIndex = fieldIndex + 1
             if jump:
                 break
+            row2 = []
+            row2[0] = row[0]
+            row2[1] = row[1]
+            row2[2] = row[2]
+            row2[3] = row[3]
+            row2[4] = row[5]
+            row2[5] = row[6]
+            row2[6] = row[7]
+            row2[7] = row[8]
+            row2[8] = row[9]
+            row2[9] = row[10]
+            row2[10] = row[12]
+            row2[10] = row[12]
+            row2[11] = row[13]
+            row2[12] = row[16]
+            row2[13] = row[17]
+            row2[14] = row[18]
+            row2[15] = row[19]
 
             transformed.append(row)
+            transformedToEconomy.append(row2)
 
         addLog('info', 'Data Transformed', 'Final rows passed: ' + str(len(transformed)))
     except Exception as e:
@@ -220,6 +251,7 @@ def excecuteStatement(database, statement):
             cursor.execute(statement)
 
         if database =='sqlserver1':
+
             print('excecute sql server query')
     except Exception as e:
         print(statement)
