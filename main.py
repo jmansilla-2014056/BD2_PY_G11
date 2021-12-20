@@ -1,8 +1,15 @@
+# Libraries
 import csv
+import datetime
 import mysql.connector as database
+import numpy as np
 import sys, os
 from dotenv import load_dotenv
-import covidIndex 
+
+# app
+from covidIndex import covidIndex, covidTempQuery
+from reports import reports
+from utils import bcolors
 
 load_dotenv()
 
@@ -12,151 +19,46 @@ connection = database.connect(
     host=os.getenv('MYSQL_HOST'),
     database=os.getenv('MYSQL_DATABASE'))
 
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    WHITE  = '\33[37m'
-
 cursor = connection.cursor(buffered=True)
-initialRoute = 'entrada.csv'
+initialRoute = 'covid.csv'
 
-reportsParams = {
-    "r4" : { # PROMEDIO TOTAL POR PAIS
-        "query" : '''SELECT c.name, ROUND(AVG(IFNULL(t.totalDamage,0)),5) as average FROM tsunami t
-                JOIN country c ON c.id = t.countryId
-                GROUP BY c.id
-            ORDER BY average DESC;''',
-        "c1": {
-            "size": 40,
-            "name": "COUNTRY"
-        },
-        "c2": {
-            "size": 10,
-            "name": "DAMAGE AVG"
-        },
-    },
-    "r5" : { # TOP 5 PAISES CON MAS MUERTES
-        "query" : '''SELECT c.name, SUM(IFNULL(t.totalDeaths,0)) as deaths FROM tsunami t
-                JOIN country c ON c.id = t.countryId
-                GROUP BY c.id
-            ORDER BY deaths DESC LIMIT 5;''',
-        "c1": {
-            "size": 40,
-            "name": "COUNTRY"
-        },
-        "c2": {
-            "size": 7,
-            "name": "DEATHS"
-        },
-    },
-    "r6" : { # TOP 5 A;OS CON MAS MUERTES
-        "query": '''SELECT ti.year, SUM(IFNULL(t.totalDeaths,0)) as deaths FROM tsunami t
-                JOIN Time ti ON ti.id = t.TimeId
-                GROUP BY ti.year
-            ORDER BY deaths DESC LIMIT 5;''',
-        "c1": {
-            "size": 4,
-            "name": "YEAR"
-        },
-        "c2": {
-            "size": 7,
-            "name": "DEATHS"
-        },
-    },
-    "r7" : { # TOP 5 A;OS CON MAS TSUNAMIS
-        "query": '''SELECT ti.year, count(*) as tsunamis FROM tsunami t
-            JOIN Time ti ON ti.id = t.TimeId
-            GROUP BY ti.year
-        ORDER BY tsunamis DESC LIMIT 5;''',
-        "c1": {
-            "size": 4,
-            "name": "YEAR"
-        },
-        "c2": {
-            "size": 8,
-            "name": "TSUNAMIS"
-        },
-    },
-    "r8" : { # TOP 5 PAISES CON MAYOR NUMERO DE CASAS DESTRUIDAS
-        "query" : '''SELECT c.name, SUM(IFNULL(t.totalHousesDestroyed,0)) as houses FROM tsunami t
-                JOIN country c ON c.id = t.countryId
-                GROUP BY c.id
-            ORDER BY houses DESC LIMIT 5;''',
-        "c1": {
-            "size": 40,
-            "name": "COUNTRY"
-        },
-        "c2": {
-            "size": 16,
-            "name": "HOUSES DESTROYED"
-        },
-    },
-    "r9" : { # TOP 5 PAISES CON MAYOR NUMERO DE CASAS DA;ADAS
-        "query" : '''SELECT c.name, SUM(IFNULL(t.totalHousesDamaged,0)) as houses FROM tsunami t
-                JOIN country c ON c.id = t.countryId
-                GROUP BY c.id
-            ORDER BY houses DESC LIMIT 5;''',
-        "c1": {
-            "size": 40,
-            "name": "COUNTRY"
-        },
-        "c2": {
-            "size": 14,
-            "name": "HOUSES DAMAGED"
-        },
-    },
-    "r10" : { # PROMEDIO DE ALTURA MAXIMA POR PAIS
-        "query": '''SELECT c.name, ROUND(AVG(IFNULL(t.maximumWaterHeight,0)),5) as average FROM tsunami t
-                JOIN country c ON c.id = t.countryId
-                GROUP BY c.id
-            ORDER BY average DESC;''',
-        "c1": {
-            "size": 40,
-            "name": "COUNTRY"
-        },
-        "c2": {
-            "size": 10,
-            "name": "MAX HEIGHT"
-        },
-    },
-}
+# ETL tools
+extracted = None
+transformed = None
 
 def main():
     showMenu()
 
 def showMenu():
+    tcolor = bcolors.DISABLED
+    lcolor = bcolors.DISABLED
+
+    if extracted != None:
+        tcolor = bcolors.WHITE
+
+    if transformed != None:
+        lcolor = bcolors.WHITE
+
     print(bcolors.HEADER + '         WELCOME!')
     print('========================')
     print('')
-    print(bcolors.WHITE + '1. Read CSV')
-    print('2. Drop and create tables')
-    print('3. Clear tables data')
+    print(bcolors.WHITE + '1. Extraer informacion')
+    print(tcolor + '2. Transformacion de informacion') 
+    print(lcolor + '3. Carga de informacion') 
+    print(bcolors.WHITE + '3. Clear tables data')
     print('4. Reports')
     print('0. Exit')
 
     option = input()
     if option == '1':
         try:
-            saveInitialData()
-            connection.commit()
+            extractInfo()
         except Exception as e:
             print(f"Error READING CSV, YOU R IN TROUBLES: {e}")
     if option == '2':
-        clearTables()
-        createTables()
+        transformInfo()
     if option == '3':
-        try:
-            print('limpiar data')
-        except Exception as e:
-            print(f"Error CLEANING DATA: {e}")
+        loadInfo()
     if option == '4':
         reportsMenu()
     elif option == '0':
@@ -264,7 +166,7 @@ def reporte3():
         print(f"Error printing report 3: {e}")
 
 def reporte4omas(n):
-    reportData = reportsParams['r'+n]
+    reportData = reports.reportsParams['r'+n]
     statement = reportData['query']
     c1 = reportData['c1']
     c2 = reportData['c2']
@@ -289,14 +191,80 @@ def reporte4omas(n):
 def formatColumn(text, lenght, character):
     return str(text).ljust(lenght, character)
 
-def saveInitialData():
-    with open(initialRoute, newline='') as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=',', quotechar='"')
-        count = 0
-        for row in spamreader:
-            print(row)
-            # Hacer lo que se necesite para guardar la data 
-            count = count + 1
+def extractInfo():
+    try:
+        with open(initialRoute, newline='') as csvfile:
+            data = csv.reader(csvfile, delimiter=',', quotechar='"')
+            global extracted
+            extracted = list(data)
+            count = str(len(extracted))
+            addLog('info', 'Data extracted', count + ' rows extracted.')
+            print('Data extracted successfully!!')
+    except Exception as e:
+        addLog('error', 'Extract info fail', str(e))
+
+def transformInfo():
+    try:
+        global extracted
+        global transformed
+        transformed = []
+        index = 0
+        for row in extracted:
+            if index == 0:
+                index = index + 1
+                continue
+            
+            index = index + 1
+            if not row[covidIndex.continent[0]] or row[covidIndex.continent[0]] == '' :
+                continue
+            # TODO: add all missing filters 
+            transformed.append(row)
+
+        addLog('info', 'Data Transformed', 'Final rows passed: ' + str(len(transformed)))
+    except Exception as e:
+        addLog('error', 'Transform info failed', str(e))
+
+def loadInfo():
+    try:
+        global transformed
+        if transformed == None:
+            return
+
+        batches = transformed
+        np.array_split(batches, 100)
+
+        for batch in batches:
+            for row in batch:
+                statement = f'''INSERT INTO temp ({','.join(covidIndex.fieldNames)}) VALUES ('{"','".join(row)}')'''
+                # print(statement)
+                excecuteStatement('mysql', statement)
+                commitStatement('mysql')
+
+            addLog('info', 'Data Loaded', 'Rows loaded in batch: ' + str(len(row)))
+    except Exception as e:
+        addLog('error', 'Load info failed', str(e))
+
+def commitStatement(database):
+    try:
+        if database == 'mysql':
+                connection.commit()
+
+        if database =='sqlserver1':
+            print('excecute sql server query')
+    except Exception as e:
+        addLog('error', 'Executing Commit, rollback will be running', str(e))
+        if database == 'mysql':
+            connection.rollback()
+
+def excecuteStatement(database, statement):
+    try:
+        if database == 'mysql':
+            cursor.execute(statement)
+
+        if database =='sqlserver1':
+            print('excecute sql server query')
+    except Exception as e:
+        addLog('error', 'Executing Query in ' + database, str(e))
 
 def clearTables():
     try:
@@ -328,6 +296,19 @@ def createTables():
         print(f"Database created!")
     except database.Error as e:
         print(f"Error creating tables: {e}")
+
+def addLog(type, message, description):
+    if type == 'error':
+        print(bcolors.FAIL + message + ". Please check logs for more info. "+ bcolors.WHITE)
+        print(description)
+
+    currentDT = datetime.datetime.now()
+    date = currentDT.strftime("%Y/%m/%d %H:%M:%S")
+    logType = formatColumn(type.upper(), 10, ' ')
+    fMessage = formatColumn(message, 50, ' ')
+    fLog= open(f"logs.txt","a+")
+    fLog.write(date + "\t" + logType + "\t" + fMessage + "\t" + description + "\n")
+    fLog.close()
 
 if __name__ == "__main__":
     main()
