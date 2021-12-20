@@ -62,14 +62,15 @@ def showMenu():
     print(bcolors.WHITE + '1. Extraer informacion')
     print(tcolor + '2. Transformacion de informacion') 
     print(lcolor + '3. Carga de informacion') 
-    print(cModel + '3. Crear modelo')
-    print(cMarts + '4. Crear Datamarts')
-    print(cRep + '5. Reportes')
+    print(cModel + '4. Crear modelo')
+    print(cMarts + '5. Crear Datamarts')
+    print(cRep + '6. Reportes')
     print(bcolors.WHITE + '0. Exit')
 
     option = input()
     if option == '1':
         try:
+            cleanTempTables()
             extractInfo()
         except Exception as e:
             print(f"Error READING CSV, YOU R IN TROUBLES: {e}")
@@ -78,6 +79,8 @@ def showMenu():
     if option == '3':
         loadInfo()
     if option == '4':
+        createModel()
+    if option == '6':
         reportsMenu()
     elif option == '0':
         quit()
@@ -101,6 +104,18 @@ def reportsMenu():
 
 def formatColumn(text, lenght, character):
     return str(text).ljust(lenght, character)
+
+def cleanTempTables():
+    statement = 'DROP TABLE IF EXISTS temp'
+    excecuteStatement('mysql', statement)
+    commitStatement('mysql')
+    excecuteStatement('sqlserver1', statement)
+    commitStatement('sqlserver1')
+
+    excecuteStatement('mysql', covidTempQuery.createTemp)
+    commitStatement('mysql')
+    excecuteStatement('sqlserver1', covidTempQuery.createTemp)
+    commitStatement('sqlserver1')
 
 def extractInfo():
     try:
