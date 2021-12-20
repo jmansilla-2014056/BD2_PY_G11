@@ -26,12 +26,20 @@ initialRoute = 'covid.csv'
 extracted = None
 transformed = None
 
+# Data marts
+createModels = False
+createMarts = False
+showReports = False
+
 def main():
     showMenu()
 
 def showMenu():
     tcolor = bcolors.DISABLED
     lcolor = bcolors.DISABLED
+    cModel = bcolors.DISABLED
+    cMarts = bcolors.DISABLED
+    cRep = bcolors.DISABLED
 
     if extracted != None:
         tcolor = bcolors.WHITE
@@ -39,14 +47,24 @@ def showMenu():
     if transformed != None:
         lcolor = bcolors.WHITE
 
+    if createModels:
+        cModel = bcolors.WHITE
+
+    if createMarts != None:
+        cMarts = bcolors.WHITE
+
+    if showReports != None:
+        cRep = bcolors.WHITE
+
     print(bcolors.HEADER + '         WELCOME!')
     print('========================')
     print('')
     print(bcolors.WHITE + '1. Extraer informacion')
     print(tcolor + '2. Transformacion de informacion') 
     print(lcolor + '3. Carga de informacion') 
-    print(bcolors.WHITE + '3. Clear tables data')
-    print('4. Reports')
+    print(cModel + '3. Crear modelo')
+    print(cMarts + '4. Crear Datamarts')
+    print(cRep + '5. Reportes')
     print('0. Exit')
 
     option = input()
