@@ -81,90 +81,6 @@ def reportsMenu():
 
     reportsMenu()
 
-def reporte1():
-    tsunamiRecords = 'SELECT COUNT(*) FROM tsunami'
-    timeRecords = 'SELECT COUNT(*) FROM Time'
-    countriesRecords = 'SELECT COUNT(*) FROM country'
-    try:
-        cursor.execute(tsunamiRecords)
-        print('Tsunami table records: '+ str(cursor.fetchone()[0]))
-        cursor.execute(timeRecords)
-        print('Time table records: '+ str(cursor.fetchone()[0]))
-        cursor.execute(countriesRecords)
-        print('Country table records: '+ str(cursor.fetchone()[0]))
-    except Exception as e:
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        print(exc_type, exc_tb.tb_lineno)
-        print(f"Error printing report 2: {e}")
-    
-def reporte2():
-    statement = '''SELECT yr, GROUP_CONCAT(CONCAT(NAME, ' (', cuenta,')') ORDER BY cuenta DESC SEPARATOR '|' ) countries FROM (
-            SELECT ti.year AS yr, c.name, COUNT(*) AS cuenta
-            FROM tsunami t
-                JOIN country c ON c.id = t.countryId
-                JOIN Time ti ON ti.id = t.TimeId
-                GROUP BY yr, name
-            ORDER BY yr, cuenta, NAME) AS alias
-        GROUP BY yr;'''
-
-    cursor.execute(statement)
-    f= open("report_02.txt","w+")
-    formatYear = formatColumn('Year', 5, ' ')
-    country1 = formatColumn('country 1', 40, ' ')
-    country2 = formatColumn('country 2', 40, ' ')
-    country3 = formatColumn('country 3', 40, ' ')
-    country4 = formatColumn('country 4', 40, ' ')
-    country5 = formatColumn('country 5', 40, ' ')
-    try:
-        f.write(formatYear + "\t" + country1 + "\t" + country2 + "\t" + country3 + "\t" + country4 + "\t" + country5 + "\n")
-        for (yr, countries) in cursor:
-            formatYear = formatColumn(yr, 5, ' ')
-            countriesStr = countries.split('|')
-            maxRange = min(len(countriesStr), 5)
-            countryList = ''
-            for i in range(maxRange):
-                countryList = countryList + formatColumn(countriesStr[i] or '', 40, ' ')+"\t"
-            f.write(formatYear + "\t" + countryList + "\n")
-        f.close()
-    except Exception as e:
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        print(exc_type, exc_tb.tb_lineno)
-        print(f"Error printing report 2: {e}")
-
-def reporte3():
-    statement = '''SELECT country, GROUP_CONCAT(CONCAT(yr, ' (', cuenta,')') ORDER BY cuenta DESC SEPARATOR '|' )FROM (
-            SELECT c.name AS country, ti.year AS yr, COUNT(*) AS cuenta
-            FROM tsunami t
-                JOIN country c ON c.id = t.countryId
-                JOIN Time ti ON ti.id = t.TimeId
-                GROUP BY NAME, yr
-            ORDER BY cuenta desc, yr) AS alias
-        GROUP BY country;'''
-
-    cursor.execute(statement)
-    f= open("report_03.txt","w+")
-    formatYear = formatColumn('Country', 40, ' ')
-    country1 = formatColumn('Year 1', 8, ' ')
-    country2 = formatColumn('Year 2', 8, ' ')
-    country3 = formatColumn('year 3', 8, ' ')
-    country4 = formatColumn('year 4', 8, ' ')
-    country5 = formatColumn('year 5', 8, ' ')
-    try:
-        f.write(formatYear + "\t" + country1 + "\t" + country2 + "\t" + country3 + "\t" + country4 + "\t" + country5 + "\n")
-        for (yr, countries) in cursor:
-            formatYear = formatColumn(yr, 40, ' ')
-            countriesStr = countries.split('|')
-            maxRange = min(len(countriesStr), 5)
-            countryList = ''
-            for i in range(maxRange):
-                countryList = countryList + formatColumn(countriesStr[i] or '', 8, ' ')+"\t"
-            f.write(formatYear + "\t" + countryList + "\n")
-        f.close()
-    except Exception as e:
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        print(exc_type, exc_tb.tb_lineno)
-        print(f"Error printing report 3: {e}")
-
 def reporte4omas(n):
     reportData = reports.reportsParams['r'+n]
     statement = reportData['query']
@@ -215,9 +131,51 @@ def transformInfo():
                 continue
             
             index = index + 1
-            if not row[covidIndex.continent[0]] or row[covidIndex.continent[0]] == '' :
-                continue
-            # TODO: add all missing filters 
+            jump = False
+
+            fieldIndex = 0
+            fieldBlacklist = [
+                covidIndex.iso_code,
+                covidIndex.continent,
+                covidIndex.location,
+                covidIndex.date,
+                covidIndex.total_cases,
+                covidIndex.new_cases,
+                covidIndex.new_cases_smoothed,
+                covidIndex.total_deaths,
+                covidIndex.new_deaths,
+                covidIndex.new_deaths_smoothed,
+                covidIndex.total_cases_per_million,
+                covidIndex.new_cases_per_million,
+                covidIndex.new_cases_smoothed_per_million,
+                covidIndex.total_deaths_per_million,
+                covidIndex.new_deaths_per_million,
+                covidIndex.new_deaths_smoothed_per_million,
+                covidIndex.stringency_index,
+                covidIndex.population,
+                covidIndex.population_density,
+                covidIndex.median_age,
+                covidIndex.aged_65_older,
+                covidIndex.aged_70_older,
+                covidIndex.gdp_per_capita,
+                covidIndex.extreme_poverty,
+                covidIndex.cardiovasc_death_rate,
+                covidIndex.diabetes_prevalence,
+                covidIndex.handwashing_facilities,
+                covidIndex.hospital_beds_per_thousand,
+                covidIndex.life_expectancy,
+                covidIndex.human_development_index
+            ]
+            for field in row:
+                if fieldIndex in fieldBlacklist and field == '':
+                    jump = True
+                    fieldIndex = fieldIndex + 1
+                    break
+                
+                fieldIndex = fieldIndex + 1
+            if jump:
+                break
+
             transformed.append(row)
 
         addLog('info', 'Data Transformed', 'Final rows passed: ' + str(len(transformed)))
@@ -225,20 +183,20 @@ def transformInfo():
         addLog('error', 'Transform info failed', str(e))
 
 def loadInfo():
+    statement = ''
     try:
         global transformed
         if transformed == None:
             return
 
-        batches = transformed
-        np.array_split(batches, 100)
+        batches = np.array_split(transformed, 100)
 
         for batch in batches:
             for row in batch:
-                statement = f'''INSERT INTO temp ({','.join(covidIndex.fieldNames)}) VALUES ('{"','".join(row)}')'''
+                statement = f'''INSERT INTO temp ({','.join(covidIndex.fieldNames)}) VALUES ("{'","'.join(row)}")'''
                 # print(statement)
                 excecuteStatement('mysql', statement)
-                commitStatement('mysql')
+            commitStatement('mysql')
 
             addLog('info', 'Data Loaded', 'Rows loaded in batch: ' + str(len(row)))
     except Exception as e:
@@ -264,6 +222,7 @@ def excecuteStatement(database, statement):
         if database =='sqlserver1':
             print('excecute sql server query')
     except Exception as e:
+        print(statement)
         addLog('error', 'Executing Query in ' + database, str(e))
 
 def clearTables():
