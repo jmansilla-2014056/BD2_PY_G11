@@ -50,10 +50,10 @@ def showMenu():
     if createModels:
         cModel = bcolors.WHITE
 
-    if createMarts != None:
+    if createMarts:
         cMarts = bcolors.WHITE
 
-    if showReports != None:
+    if showReports:
         cRep = bcolors.WHITE
 
     print(bcolors.HEADER + '         WELCOME!')
@@ -65,7 +65,7 @@ def showMenu():
     print(cModel + '3. Crear modelo')
     print(cMarts + '4. Crear Datamarts')
     print(cRep + '5. Reportes')
-    print('0. Exit')
+    print(bcolors.WHITE + '0. Exit')
 
     option = input()
     if option == '1':
