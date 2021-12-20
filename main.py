@@ -73,14 +73,15 @@ def showMenu():
     print(bcolors.WHITE + '1. Extraer informacion')
     print(tcolor + '2. Transformacion de informacion') 
     print(lcolor + '3. Carga de informacion') 
-    print(cModel + '3. Crear modelo')
-    print(cMarts + '4. Crear Datamarts')
-    print(cRep + '5. Reportes')
+    print(cModel + '4. Crear modelo')
+    print(cMarts + '5. Crear Datamarts')
+    print(cRep + '6. Reportes')
     print(bcolors.WHITE + '0. Exit')
 
     option = input()
     if option == '1':
         try:
+            cleanTempTables()
             extractInfo()
         except Exception as e:
             print(f"Error READING CSV, YOU R IN TROUBLES: {e}")
@@ -89,6 +90,8 @@ def showMenu():
     if option == '3':
         loadInfo()
     if option == '4':
+        createModel()
+    if option == '6':
         reportsMenu()
     elif option == '0':
         quit()
@@ -110,31 +113,20 @@ def reportsMenu():
 
     reportsMenu()
 
-def reporte4omas(n):
-    reportData = reports.reportsParams['r'+n]
-    statement = reportData['query']
-    c1 = reportData['c1']
-    c2 = reportData['c2']
-    
-    try:
-        cursor.execute(statement)
-
-        f= open(f"report_{n}.txt","w+")
-        firstColumn = formatColumn(c1['name'], c1['size'], ' ')
-        secondColumn = formatColumn(c2['name'], c2['size'], ' ')
-        f.write(firstColumn + "\t" + secondColumn + "\n")
-        for (column1, column2) in cursor:
-            firstColumn = formatColumn(column1, c1['size'], ' ')
-            secondColumn = formatColumn(column2, c2['size'], ' ')
-            f.write(firstColumn + "\t" + secondColumn + "\n")
-        f.close()
-    except Exception as e:
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        print(exc_tb.tb_lineno)
-        print(f"Error printing report {n}: {e}")
-
 def formatColumn(text, lenght, character):
     return str(text).ljust(lenght, character)
+
+def cleanTempTables():
+    statement = 'DROP TABLE IF EXISTS temp'
+    excecuteStatement('mysql', statement)
+    commitStatement('mysql')
+    excecuteStatement('sqlserver1', statement)
+    commitStatement('sqlserver1')
+
+    excecuteStatement('mysql', covidTempQuery.createTemp)
+    commitStatement('mysql')
+    excecuteStatement('sqlserver1', covidTempQuery.createTemp)
+    commitStatement('sqlserver1')
 
 def extractInfo():
     try:
@@ -274,37 +266,6 @@ def excecuteStatement(database, statement):
     except Exception as e:
         print(statement)
         addLog('error', 'Executing Query in ' + database, str(e))
-
-def clearTables():
-    try:
-        statement = 'DROP TABLE IF EXISTS temp;'
-        cursor.execute(statement)
-        statement = 'DROP TABLE IF EXISTS continent;'
-        cursor.execute(statement)
-        statement = 'DROP TABLE IF EXISTS country;'
-        cursor.execute(statement)
-        statement = 'DROP TABLE IF EXISTS fecha;'
-        cursor.execute(statement)
-        statement = 'DROP TABLE IF EXISTS vaccinates_data;'
-        cursor.execute(statement)
-        statement = 'DROP TABLE IF EXISTS testunits;'
-        cursor.execute(statement)
-        statement = 'DROP TABLE IF EXISTS reproduction_rate_data;'
-        cursor.execute(statement)
-        statement = 'DROP TABLE IF EXISTS cases_per_day_data;'
-        cursor.execute(statement)
-        statement = 'DROP TABLE IF EXISTS population_index_data;'
-        cursor.execute(statement)
-        connection.commit()
-        print(f"Database cleared!")
-    except database.Error as e:
-        print(f"Error clearing database: {e}")
-
-def createTables():
-    try:
-        print(f"Database created!")
-    except database.Error as e:
-        print(f"Error creating tables: {e}")
 
 def addLog(type, message, description):
     if type == 'error':

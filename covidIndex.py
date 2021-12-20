@@ -141,11 +141,11 @@ class covidTempQuery:
     createDatabase = '''CREATE DATABASE COVID;'''
 
     # -- CREAR MODELO
-    insert = '''CREATE TABLE temp(
+    createTemp = '''CREATE TABLE temp(
         iso_code VARCHAR(100),
         continent VARCHAR(100),
-        locations VARCHAR(100),
-        dates VARCHAR(100),
+        location VARCHAR(100),
+        date VARCHAR(100),
         total_cases VARCHAR(100),
         new_cases VARCHAR(100),
         new_cases_smoothed VARCHAR(100),
@@ -190,7 +190,7 @@ class covidTempQuery:
         new_people_vaccinated_smoothed VARCHAR(100),	
         new_people_vaccinated_smoothed_per_hundred VARCHAR(100),
         stringency_index VARCHAR(100),
-        populations VARCHAR(100),
+        population VARCHAR(100),
         population_density VARCHAR(100),
         median_age VARCHAR(100),
         aged_65_older VARCHAR(100),
