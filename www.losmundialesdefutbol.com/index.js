@@ -1,10 +1,10 @@
 var express = require('express');
 var app = express();
 const path = require('path');
-const equipos = require('./equipos');
 const router = express.Router();
 
-var jugadores = require('./jugadores');
+const equipos = require('./equipos');
+const jugadores = require('./jugadores');
 const mundiales = require('./mundiales');
 const paises = require('./paises');
 
@@ -12,7 +12,8 @@ router.get('/',function(req,res){
     // jugadores.getJugadores();
     // paises.guardarPaises();
     // mundiales.guardarMundiales();
-    equipos.guarderEquipos();
+    // mundiales.guardarMundiales('premios');
+    // equipos.guarderEquipos();
     res.sendFile(path.join(__dirname+'/testing.html'));
 });
 

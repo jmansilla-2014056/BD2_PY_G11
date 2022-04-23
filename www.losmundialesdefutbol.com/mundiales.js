@@ -5,9 +5,9 @@ let mundialesRaw = 'mundialesRaw.sql';
 let equiposRaw = 'equiposRaw.sql';
 
 let resultadosRaw = 'resultadosRaw.sql';
+let premiosMundialRaw = 'premiosMundial.sql';
 module.exports = {
 	guardarMundiales: function (type = 'mundial') {
-        this.clearFiles();
         var files = fs.readdirSync(__dirname + '/mundiales');
 		// files = [files[0]];
 		files.forEach(file => {
@@ -22,28 +22,24 @@ module.exports = {
 				    this.getMundiales(data, year, mundialesRaw);                
                 
                 if (fileNameSplit[1] == 'resultados.html' && 'resultados' == type)
-                    this.getResultados(data, year, resultadosRaw);
+                    this.getResultados(data, year, resultadosRaw);              
+                
+                if (fileNameSplit[1] == 'premios.html' && 'premios' == type) {
+                    // this.clearFiles(premiosMundialRaw);
+                    this.getPremios(data, year, premiosMundialRaw);
+                }
                 
 			});
 		});
         console.log('Datos importados!');
 	},
-    clearFiles: function() {
-        fs.readFile(mundialesRaw, 'utf8', function (err,data) {
+    clearFiles: function(file) {
+        fs.readFile(file, 'utf8', function (err,data) {
             if (err) {
                 return console.log(err);
             }
     
-            fs.writeFile(mundialesRaw, '', 'utf8', function (err) {
-                if (err) return console.log(err);
-            });
-        });
-        fs.readFile(equiposRaw, 'utf8', function (err,data) {
-            if (err) {
-                return console.log(err);
-            }
-    
-            fs.writeFile(equiposRaw, '', 'utf8', function (err) {
+            fs.writeFile(file, '', 'utf8', function (err) {
                 if (err) return console.log(err);
             });
         });
@@ -150,11 +146,109 @@ module.exports = {
         this.escribirConsulta(datosIniciales, fileName);
     },
     // END RESULTADOS=================================================================================
+    // GET PREMIOS=================================================================================
+    getPremios: function (htmlScript, year, fileName) {
+        var parser = new DomParser();
+		var dom = parser.parseFromString(htmlScript);
+		var blockPremios = dom.getElementsByClassName('a-center')[0];
+		let balonBotin = this.getBalonBotin(blockPremios, year);    
+		let premiosPais = this.getPremiosPais(blockPremios, year);
+        balonBotin.forEach(datos => {
+            this.escribirConsulta(datos, fileName, 'premios_mundial_jugador');
+        });
+        premiosPais.forEach(datos => {
+            this.escribirConsulta(datos, fileName, 'premios_mundial');
+        });
+    },
+    getBalonBotin(dom, year) {
+        const premios = dom.getElementsByClassName('rd-100-30');
+        const datosPremios = [];
+        premios.forEach(premioDiv => {
+            let jugador = premioDiv.childNodes[3].innerHTML.trim()
+                .replaceAll("'", '')
+				.replaceAll("ć", 'c')
+				.replaceAll('ę', 'e')
+				.replaceAll('ł', 'l')
+				.replaceAll('Ć', 'C')
+				.replaceAll('ń', 'n');
+            if (jugador !== '-') {
+                jugador = premioDiv.childNodes[3].getElementsByTagName('a')[0].innerHTML;
+                const premio = premioDiv.childNodes[1].innerHTML.trim();
+                const country = premioDiv.childNodes[3].getElementsByTagName('img')[0].getAttribute('alt');
+                datospremio = {
+                    premio: `(SELECT id FROM premio WHERE descripcion = '${premio}')`,
+                    mundial: year,
+                    // jugador: `(SELECT id FROM premio WHERE descripcion = '${premio}')`,
+                    jugador_name: "'"+jugador+"'",
+                    pais: `(SELECT id FROM pais WHERE nombre = '${country}')`,
+                }
+                datosPremios.push(datospremio);
+            }
+        });
+
+        const premiosjugador = dom.getElementsByClassName('rd-100-45');
+        premiosjugador.forEach((premioDiv, index) => {
+            if (index > 1) {
+                return;
+            }
+
+            let jugador = premioDiv.getElementsByTagName('p')[1].innerHTML.trim();
+            if (jugador !== '-') {
+                jugadores = premioDiv.getElementsByTagName('a');
+                const premio = premioDiv.getElementsByTagName('p')[0].innerHTML.trim();
+                const country = premioDiv.getElementsByTagName('img')[0].getAttribute('alt');
+                jugadores.forEach(jugador => {
+                    const jugadornm = jugador.innerHTML.trim()
+                    .replaceAll("'", '')
+                    .replaceAll("ć", 'c')
+                    .replaceAll('ę', 'e')
+                    .replaceAll('ł', 'l')
+                    .replaceAll('Ć', 'C')
+                    .replaceAll('ń', 'n');
+
+                    datospremio = {
+                        premio: `(SELECT id FROM premio WHERE descripcion = '${premio}')`,
+                        mundial: year,
+                        // jugador: `(SELECT id FROM premio WHERE descripcion = '${premio}')`,
+                        jugador_name: "'"+jugadornm+"'",
+                        pais: `(SELECT id FROM pais WHERE nombre = '${country}')`,
+                    }
+                    datosPremios.push(datospremio);
+                });
+            }
+        });
+        return datosPremios;
+    },
+    getPremiosPais(dom, year) {
+        const premios = dom.getElementsByClassName('rd-100-45');
+        const datosPremios = [];
+        premios.forEach((premioDiv, index) => {
+            if (index <= 1) {
+                return;
+            }
+
+            let pais = premioDiv.getElementsByTagName('p')[1].innerHTML.trim();
+            if (pais !== '-') {
+                paises = premioDiv.getElementsByTagName('a');
+                const premio = premioDiv.getElementsByTagName('p')[0].innerHTML.trim();
+                paises.forEach(pais => {
+                    datospremio = {
+                        premio: `(SELECT id FROM premio WHERE descripcion = '${premio}')`,
+                        mundial: year,
+                        id_pais: `(SELECT id FROM pais WHERE nombre = '${pais.innerHTML}')`,
+                    }
+                    datosPremios.push(datospremio);
+                });
+            }
+        });
+        return datosPremios;
+    },
+    // END PREMIOS=================================================================================
 	escribirConsulta: function(datosIniciales, fileName, tableName) {
 		const fieldNames = Object.keys(datosIniciales).join(',');
 		const values = Object.values(datosIniciales).join(",");
 		var sql = `INSERT INTO ${tableName} (${fieldNames}) values (${values});\n`;
-
+        // console.log(sql);
 		const fs = require('fs');
 		fs.appendFileSync(fileName, sql);
 	}
