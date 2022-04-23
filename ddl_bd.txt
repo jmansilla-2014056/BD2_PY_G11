@@ -1,0 +1,425 @@
+create table jugador_raw
+(
+    id               int auto_increment
+        primary key,
+    nombre           varchar(200) null,
+    posicion         varchar(100) null,
+    numero_camiseta  varchar(50)  null,
+    altura           varchar(50)  null,
+    fecha_nacimiento varchar(200) null,
+    lugar_nacimiento varchar(200) null,
+    apodo            varchar(200) null,
+    sitio_oficial    varchar(200) null,
+    twitter          varchar(200) null,
+    mundiales        varchar(45)  null,
+    total_partidos   varchar(45)  null,
+    campeon          varchar(45)  null,
+    goles_anotados   varchar(5)   null,
+    promedio_gol     varchar(6)   null,
+    pais             varchar(200) null
+)
+    auto_increment = 15267;
+
+create table pais
+(
+    id       int auto_increment
+        primary key,
+    nombre   varchar(60) not null,
+    iso_code varchar(10) null
+)
+    auto_increment = 90;
+
+create table jugador
+(
+    id                   int auto_increment
+        primary key,
+    nombre               varchar(75)    not null,
+    pais                 int            not null,
+    fecha_nacimiento     varchar(100)   null,
+    altura               decimal(10, 2) null,
+    apodo                varchar(150)   null,
+    anio_nacimiento      varchar(4)     null,
+    mes_nacimiento       varchar(20)    null,
+    dia_nacimiento       varchar(2)     null,
+    fech_nacimiento_date date           null,
+    constraint fk_jugador_id_pais
+        foreign key (pais) references pais (id)
+)
+    auto_increment = 15267;
+
+create table incidencia
+(
+    id          int auto_increment
+        primary key,
+    jugador     int           null,
+    goles       int default 0 null,
+    yellow_card int default 0 null,
+    red_card    int default 0 null,
+    mundial     int           null,
+    jugo        int           null,
+    no_jugo     int           null,
+    perdidos    int           null,
+    ganados     int           null,
+    empatados   int           null,
+    constraint incidencia_ibfk_1
+        foreign key (jugador) references jugador (id)
+);
+
+create index fk_jugador_id_pais_idx
+    on jugador (pais);
+
+create table mundial
+(
+    year    int not null
+        primary key,
+    sede    int not null,
+    campeon int null,
+    constraint mundial_ibfk_1
+        foreign key (sede) references pais (id)
+);
+
+create table equipo
+(
+    id      int auto_increment
+        primary key,
+    mundial int  not null,
+    grupo   char null,
+    pais    int  null,
+    constraint equipo_ibfk_1
+        foreign key (mundial) references mundial (year),
+    constraint equipo_ibfk_2
+        foreign key (pais) references pais (id)
+)
+    auto_increment = 520;
+
+create index mundial
+    on equipo (mundial);
+
+create index pais
+    on equipo (pais);
+
+create table fase
+(
+    id     int auto_increment
+        primary key,
+    equipo int              null,
+    puntos int  default 0   null,
+    fase   char default 'I' null,
+    constraint fase_ibfk_1
+        foreign key (equipo) references equipo (id)
+);
+
+create index equipo
+    on fase (equipo);
+
+create index sede
+    on mundial (sede);
+
+create table paises
+(
+    nombre        text null,
+    ` name`       text null,
+    ` nom`        text null,
+    ` iso2`       text null,
+    ` iso3`       text null,
+    ` phone_code` text null
+);
+
+create table partido
+(
+    id           int auto_increment
+        primary key,
+    equipo1      int                                 null,
+    equipo2      int                                 null,
+    res_eq1      int       default 0                 null,
+    res_eq2      int       default 0                 null,
+    fecha_hora   timestamp default CURRENT_TIMESTAMP null,
+    reseq1_extra int       default 0                 null,
+    reseq2_extra int       default 0                 null,
+    reseq1_penal int       default 0                 null,
+    reseq2_penal int       default 0                 null,
+    Fase         varchar(100)                        null,
+    constraint partido_ibfk_1
+        foreign key (equipo1) references equipo (id),
+    constraint partido_ibfk_2
+        foreign key (equipo2) references equipo (id)
+);
+
+create table jugador_partido
+(
+    id           int auto_increment
+        primary key,
+    jugador      int              null,
+    es_titular   bit default b'1' null,
+    partido      int              null,
+    posicion     varchar(50)      null,
+    numero_goles int              null,
+    constraint jugador_partido_ibfk_1
+        foreign key (partido) references partido (id),
+    constraint jugador_partido_ibfk_2
+        foreign key (jugador) references jugador (id)
+);
+
+create index jugador
+    on jugador_partido (jugador);
+
+create index partido
+    on jugador_partido (partido);
+
+create index equipo1
+    on partido (equipo1);
+
+create index equipo2
+    on partido (equipo2);
+
+create table posicion
+(
+    id     int auto_increment
+        primary key,
+    nombre varchar(45) not null
+)
+    auto_increment = 5;
+
+create table jugador_equipo
+(
+    id              int auto_increment
+        primary key,
+    id_jugador      int         null,
+    id_equipo       int         null,
+    id_posicion     int         null,
+    numero_camiseta varchar(45) null,
+    constraint fk_juador_equipo_id_posicion
+        foreign key (id_posicion) references posicion (id),
+    constraint fk_jugador_equipo_id_equipo
+        foreign key (id_equipo) references equipo (id),
+    constraint fk_jugador_equipo_id_jugador
+        foreign key (id_jugador) references jugador (id)
+)
+    auto_increment = 8278;
+
+create index fk_juador_equipo_id_posicion_idx
+    on jugador_equipo (id_posicion);
+
+create index fk_jugador_equipo_id_equipo_idx
+    on jugador_equipo (id_equipo);
+
+create index fk_jugador_equipo_id_jugador_idx
+    on jugador_equipo (id_jugador);
+
+create table premio
+(
+    id          int auto_increment
+        primary key,
+    descripcion varchar(75) not null
+)
+    auto_increment = 12;
+
+create table premios_mundial
+(
+    id          int auto_increment
+        primary key,
+    mundial     int          null,
+    equipo      int          null,
+    premio      int          null,
+    equipo_name varchar(200) null,
+    id_pais     int          null,
+    constraint premios_mundial_ibfk_1
+        foreign key (premio) references premio (id),
+    constraint premios_mundial_ibfk_2
+        foreign key (equipo) references equipo (id),
+    constraint premios_mundial_ibfk_3
+        foreign key (mundial) references mundial (year)
+);
+
+create index equipo
+    on premios_mundial (equipo);
+
+create index mundial
+    on premios_mundial (mundial);
+
+create index premio
+    on premios_mundial (premio);
+
+create table premios_mundial_jugador
+(
+    id           int auto_increment
+        primary key,
+    mundial      int          null,
+    jugador      int          null,
+    premio       int          null,
+    jugador_name varchar(200) null,
+    pais         int          null,
+    constraint premios_mundial_jugador_ibfk_1
+        foreign key (premio) references premio (id),
+    constraint premios_mundial_jugador_ibfk_2
+        foreign key (jugador) references jugador (id),
+    constraint premios_mundial_jugador_ibfk_3
+        foreign key (mundial) references mundial (year)
+)
+    auto_increment = 60;
+
+create index jugador
+    on premios_mundial_jugador (jugador);
+
+create index mundial
+    on premios_mundial_jugador (mundial);
+
+create index premio
+    on premios_mundial_jugador (premio);
+
+create table temp
+(
+    year            varchar(255) null,
+    datetimes       varchar(255) null,
+    grupo           varchar(255) null,
+    stadium         varchar(255) null,
+    city            varchar(255) null,
+    home_team_name  varchar(255) null,
+    home_team_goals varchar(255) null,
+    away_team       varchar(255) null,
+    away_team_name  varchar(255) null,
+    win_condition   varchar(255) null
+);
+
+create table worldcupmatches
+(
+    Year                   int         null,
+    Datetime               text        null,
+    Stage                  text        null,
+    Stadium                text        null,
+    City                   text        null,
+    `Home Team Name`       text        null,
+    home_result_goles      int         null,
+    away_result_goles      int         null,
+    `Away Team Name`       text        null,
+    `Win conditions`       text        null,
+    Attendance             int         null,
+    `Half-time Home Goals` int         null,
+    `Half-time Away Goals` int         null,
+    Referee                text        null,
+    `Assistant 1`          text        null,
+    `Assistant 2`          text        null,
+    RoundID                int         null,
+    MatchID                int         null,
+    `Home Team Initials`   text        null,
+    `Away Team Initials`   text        null,
+    goles_extra_home       int         null,
+    goles_extra_visit      int         null,
+    penales_home           int         null,
+    penales_visita         int         null,
+    local                  varchar(10) null,
+    visitante              varchar(10) null
+);
+
+create
+    definer = bases2@`%` procedure DetalleMUnndial(IN p_anio int, IN p_dia int, IN p_mes int, IN p_grupo char,
+                                                   IN p_pais varchar(255))
+BEGIN
+    DECLARE p_group INT DEFAULT 0;
+    DECLARE p_country VARCHAR(255) DEFAULT '';
+    DECLARE p_day INT DEFAULT 0;
+    DECLARE p_month INT DEFAULT 0;
+    IF( p_grupo IS NOT NULL) THEN
+       SET p_group = p_grupo;
+    END IF;
+    IF ( p_pais IS NOT NULL) THEN
+        SET p_country = p_pais;
+    END IF;
+    IF ( p_day IS NOT NULL AND p_mes IS NOT NULL) THEN
+        SELECT *FROM partido WHERE EXTRACT(year FROM partido.fecha_hora) = p_anio and  EXTRACT(day FROM partido.fecha_hora) = p_dat;
+    ELSE
+        SELECT *FROM partido WHERE  EXTRACT(year FROM partido.fecha_hora) = p_anio ;
+    END IF;
+END;
+
+create
+    definer = bases2@`%` procedure info_jugador(IN nombre varchar(200), IN jugadorId int)
+BEGIN
+	DECLARE whereId VARCHAR(255) DEFAULT '';
+    DECLARE whereNombre VARCHAR(255) DEFAULT '';
+    if jugadorId is not null then
+		set whereId = concat(' and j.id = ', jugadorId);
+    end if;
+    if nombre is not null then
+		set whereNombre = concat(' and j.nombre like \'%', nombre,'%\'');
+    end if;
+    
+	# Datos generales    
+    set @generalData = 'select 
+			j.id,
+			j.nombre,
+			j.fech_nacimiento_date as fecha_nacimiento,
+			ifnull(j.altura, \'desconocida\') as altura,
+			ifnull(j.apodo, \'\') as apodo
+		 from jugador j
+		 join pais p on p.id = j.pais
+		 where 1 ';
+    set @finalQuery = concat(@generalData, whereId, whereNombre, ';');
+    
+	PREPARE myquery FROM @finalQuery;
+	EXECUTE myquery;
+    
+    # Datos de premios
+    set @premiosData = 'select 
+			j.id, 
+			j.nombre, 
+			pr.descripcion as premio, 
+			pmj.mundial
+		from premios_mundial_jugador pmj
+		join premio pr on pr.id = pmj.premio
+		join jugador j on j.id = pmj.jugador
+		where 1 ';
+	set @finalQuery = concat(@premiosData, whereId, whereNombre, ';');
+    
+	PREPARE myquery FROM @finalQuery;
+	EXECUTE myquery;
+    
+END;
+
+create
+    definer = bases2@`%` procedure info_mundial(IN p_anio int, IN p_dia int, IN p_mes int, IN p_grupo char,
+                                                IN p_pais varchar(255))
+BEGIN
+    DECLARE p_group INT DEFAULT 0;
+    DECLARE p_country VARCHAR(255) DEFAULT '';
+    DECLARE p_day INT DEFAULT 0;
+    DECLARE p_month INT DEFAULT 0;
+    IF( p_grupo IS NOT NULL) THEN
+       SET p_group = p_grupo;
+    END IF;
+    IF ( p_pais IS NOT NULL) THEN
+        SET p_country = p_pais;
+    END IF;
+    IF ( p_day IS NOT NULL AND p_mes IS NOT NULL) THEN
+        SELECT *FROM partido WHERE EXTRACT(year FROM partido.fecha_hora) and  EXTRACT(day FROM partido.fecha_hora);
+    ELSE
+        SELECT *FROM partido WHERE  EXTRACT(year FROM partido.fecha_hora) ;
+    END IF;
+END;
+
+create
+    definer = bases2@`%` procedure info_pais(IN country int, IN sede int, IN visitante int)
+BEGIN
+    CASE
+        WHEN country IS NOT NULL and sede IS NULL and visitante IS NULL THEN
+            SELECT  m.year as mundial, m.sede, if(m.campeon = m.sede, "SI", "NO") AS ES_sede, m.campeon, p.*
+            FROM mundial m, pais c, partido p WHERE m.campeon = c.id and c.id = country ;
+        WHEN country IS NULL and sede IS NOT NULL and visitante IS NULL THEN
+            SELECT  m.year as mundial, m.sede, if(m.campeon = m.sede, "SI", "NO") AS ES_sede, m.campeon, p.*
+            FROM mundial m, pais c, partido p WHERE m.sede = c.id and c.id = sede ;
+        WHEN country IS NOT NULL and sede IS NULL and visitante IS NOT NULL and visitante = 1 THEN
+                SELECT  m.year as mundial, m.sede, if(m.campeon = m.sede, "SI", "NO") AS ES_sede, m.campeon, p.*
+                FROM mundial m, pais c, partido p WHERE p.equipo2 = c.id and c.id = country ;
+         WHEN country IS NOT NULL and sede IS NULL and visitante IS NOT NULL and visitante = 0 THEN
+                    SELECT  m.year as mundial, m.sede, if(m.campeon = m.sede, "SI", "NO") AS ES_sede, m.campeon, p.*
+                    FROM mundial m, pais c, partido p WHERE p.equipo1 = c.id and c.id = country ;
+    END CASE;
+END;
+
+create
+    definer = bases2@`%` procedure testing()
+BEGIN
+	select 1 as first_table;
+    select 2 as second_table;
+END;
+
