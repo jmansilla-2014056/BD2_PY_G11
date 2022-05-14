@@ -1,0 +1,73 @@
+use Mundial
+
+
+function consulta1(anio, pais, dia, mes){
+    var params
+    var results
+    if(dia && mes){
+            params =  {
+                        'anio' : anio,
+                        'dia': dia,
+                        'mes': mes
+            }
+        }else if(dia){
+            params = {
+                        'anio' : anio,
+                        'dia': dia
+            }
+        }else if(mes){
+            params= {
+                        'anio' : anio,
+                        'mes': mes
+            }
+        }
+        else params = { 'anio': anio}
+        if(pais){
+            results =  db.partidos.aggregate([
+                {
+                    '$lookup': {
+                        'from': 'equipo',
+                        'localField': 'anio',
+                        'foreignField': 'mundial',
+                        'as': 'detalle_equipo'
+                    }
+                }, {
+                    '$match': {
+                        '$expr': {
+                            '$or': [
+                                {
+                                    '$eq': [
+                                        '$local', pais
+                                    ]
+                                }, {
+                                    '$eq': [
+                                        '$visitante', pais
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }, {
+                    '$match': params
+
+                }
+            ])
+        }else{
+            results =  db.partidos.aggregate([
+                {
+                    '$lookup': {
+                        'from': 'equipo',
+                        'localField': 'anio',
+                        'foreignField': 'mundial',
+                        'as': 'detalle_equipo'
+                    }
+                },  {
+                    '$match': params
+                }
+            ])
+        }
+
+        return results
+    }
+
+    consulta1(2014,undefined,26)
