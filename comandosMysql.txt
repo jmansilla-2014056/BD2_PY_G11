@@ -1,0 +1,14 @@
+------BACKUP 
+
+"C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqldump.exe" "--result-file=C:\Users\GABRIELA RAYMUNDO\Documents\gaby\prueba2.sql" 
+bd2_mundiales --user=bases2@bases2 
+--host=bases2.mysql.database.azure.com --port=3306 --password=Jesus98-yo
+
+----------RESTAURACION
+source "C:\\Users\\GABRIELA RAYMUNDO\\Documents\\gaby\\prueba2.sql"
+
+--- FRAGMENTACION, COLLATION
+select table_schema, table_name,data_length, data_free, ((DATA_LENGTH/data_free)*100) frag_percent ,
+engine, TABLE_COLLATION from information_schema.tables
+where table_schema not in ('information_schema', 'mysql', 'so2_proyect', 'so2_proyectv2') and data_free > 0
+order by frag_percent desc;
